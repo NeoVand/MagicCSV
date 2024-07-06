@@ -1,0 +1,63 @@
+# Python-related
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+build/
+*.egg
+
+# Virtual environment
+venv/
+env/
+.env
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Streamlit
+.streamlit/
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Logs
+*.log
+
+# Data files (if you don't want to track them)
+*.csv
+*.xlsx
+*.json
+
+# Compiled Python files
+*.pyc
+
+# Temporary files
+*.bak
+*.swp
+*.swo
+*~
+
+# Distribution / packaging
+.Python
+develop-eggs/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+MANIFEST
