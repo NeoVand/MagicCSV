@@ -7,23 +7,26 @@ import random
 from datetime import timedelta
 import html
 
-def check_ollama_connection():
+# Default Ollama URL
+DEFAULT_OLLAMA_URL = 'http://localhost:11434'
+
+def check_ollama_connection(ollama_url):
     try:
-        requests.get('http://localhost:11434/api/tags', timeout=5).raise_for_status()
+        requests.get(f'{ollama_url}/api/tags', timeout=5).raise_for_status()
         return True
     except requests.RequestException:
         return False
 
-def get_ollama_models():
+def get_ollama_models(ollama_url):
     try:
-        response = requests.get('http://localhost:11434/api/tags', timeout=5)
+        response = requests.get(f'{ollama_url}/api/tags', timeout=5)
         response.raise_for_status()
         return [model['name'] for model in response.json()['models']]
     except requests.RequestException as e:
         st.sidebar.error(f"Error connecting to Ollama: {str(e)}")
         return []
 
-def generate_output(model, prompt, temperature, system_prompt):
+def generate_output(ollama_url, model, prompt, temperature, system_prompt):
     try:
         data = {
             'model': model,
@@ -31,7 +34,7 @@ def generate_output(model, prompt, temperature, system_prompt):
             'temperature': temperature,
             'system': system_prompt
         }
-        response = requests.post('http://localhost:11434/api/generate', 
+        response = requests.post(f'{ollama_url}/api/generate', 
                                  json=data,
                                  stream=True,
                                  timeout=30)
@@ -60,20 +63,26 @@ def main():
     if 'processed_columns' not in st.session_state:
         st.session_state.processed_columns = []
 
-    if not check_ollama_connection():
-        st.error("Cannot connect to Ollama server. Please make sure it's running.")
-        st.stop()
-
-    models = get_ollama_models()
-    if not models:
-        st.error("No Ollama models available. Please check your Ollama installation.")
-        st.stop()
+    if 'ollama_url' not in st.session_state:
+        st.session_state.ollama_url = DEFAULT_OLLAMA_URL
 
     with st.sidebar.expander("🛠️ Model Settings", expanded=False):
-        model = st.selectbox('Select Ollama Model:', models)
-        temperature = st.slider('Temperature', min_value=0.0, max_value=2.0, value=0.7, step=0.1)
-        system_prompt = st.text_area('System Prompt:', value='', height=100)
-        seed = st.number_input('Seed (optional):', min_value=0, value=0, help="Set a seed for reproducible results. Leave as 0 for random seed.")
+        ollama_url = st.text_input("Ollama Server URL:", value=st.session_state.ollama_url)
+        if ollama_url != st.session_state.ollama_url:
+            st.session_state.ollama_url = ollama_url
+
+        if not check_ollama_connection(st.session_state.ollama_url):
+            st.error(f"Cannot connect to Ollama server at {st.session_state.ollama_url}. Please make sure it's running.")
+            st.warning("If you're using Docker, try changing the Ollama Server URL to 'http://host.docker.internal:11434' or your Docker host IP.")
+        else:
+            models = get_ollama_models(st.session_state.ollama_url)
+            if not models:
+                st.error("No Ollama models available. Please check your Ollama installation.")
+            else:
+                model = st.selectbox('Select Ollama Model:', models)
+                temperature = st.slider('Temperature', min_value=0.0, max_value=2.0, value=0.7, step=0.1)
+                system_prompt = st.text_area('System Prompt:', value='', height=100)
+                seed = st.number_input('Seed (optional):', min_value=0, value=0, help="Set a seed for reproducible results. Leave as 0 for random seed.")
 
     csv_file = st.sidebar.file_uploader("📁 Choose a CSV file", type="csv")
 
@@ -103,7 +112,7 @@ def main():
             status_placeholder = st.empty()
             preview_container = st.empty()
             stop_button_placeholder = st.empty()
-            output_placeholder = st.empty()  # Add this line
+            output_placeholder = st.empty()
         
             def process_csv(df, model, prompt_template, start_row, end_row, new_column_name, temperature, system_prompt, seed):
                 df[new_column_name] = ''
@@ -123,7 +132,7 @@ def main():
                     input_dict = {f"col{j+1}": str(value) for j, value in enumerate(row)}
                     try:
                         prompt = prompt_template.format(**input_dict)
-                        response = generate_output(model, prompt, temperature, system_prompt)
+                        response = generate_output(st.session_state.ollama_url, model, prompt, temperature, system_prompt)
                         if response:
                             full_response = ""
                             for line in response.iter_lines():
@@ -133,10 +142,7 @@ def main():
                                         full_response += json_response['response']
                                         df.at[i, new_column_name] = full_response
                                         
-                                        # Update the preview with the latest data
                                         preview_container.dataframe(df)
-                                        
-                                        # Update the streaming output
                                         output_placeholder.markdown(f"**Current cell output:**\n\n{html.escape(full_response)}")
                                     
                                     if json_response.get('done', False):
@@ -163,11 +169,10 @@ def main():
             st.session_state.df = process_csv(df, model, prompt_template, start_row, end_row, new_column_name, temperature, system_prompt, seed)
             st.session_state.processed_columns.append(new_column_name)
             
-            # Clear progress bar, status text, and stop button
             progress_placeholder.empty()
             status_placeholder.empty()
             stop_button_placeholder.empty()
-            output_placeholder.empty() 
+            output_placeholder.empty()
             
             st.success('✅ Processing complete!')
             
