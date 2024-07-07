@@ -4,7 +4,7 @@ MagicCSV is a Streamlit-based application that leverages local Ollama LLMs to ad
 
 ## 🎥 Demo Video
 
-[![MagicCSV Demo](https://img.youtube.com/vi/y3QHEWODAnM/0.jpg)](https://youtu.be/y3QHEWODAnM)
+[![MagicCSV Demo](./images/screenshot.png)](https://youtu.be/y3QHEWODAnM)
 
 ## 🚀 Quick Start (for Users)
 
