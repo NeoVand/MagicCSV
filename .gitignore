@@ -44,7 +44,7 @@ Thumbs.db
 *.swp
 *.swo
 *~
-
+*-dev.py
 # Distribution / packaging
 .Python
 develop-eggs/

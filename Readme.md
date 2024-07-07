@@ -1,6 +1,6 @@
 # 🔮 MagicCSV
 
-MagicCSV is a Streamlit-based application that leverages local Ollama LLMs to add a new column to your CSV files using customizable prompts.
+MagicCSV is a simple application that leverages LLMs to add a new column to your CSV files using customizable prompts. The app utilizes prompts to merge data from columns in a customized manner, offering a user-friendly alternative to traditional spreadsheet formulas. With MagicCSV, you can go beyond formulas and do things like translating to different languages, summarizing data, qualitative analysis, and pretty much anything a large language model can do. You can add columns iteratively and use previously generated columns in your new prompts.
 
 ## 🎥 Demo Video
 
