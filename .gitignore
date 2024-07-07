@@ -13,7 +13,6 @@ env/
 
 # PyInstaller
 *.manifest
-*.spec
 
 # Streamlit
 .streamlit/
