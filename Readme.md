@@ -2,6 +2,10 @@
 
 MagicCSV is a Streamlit-based application that leverages local Ollama LLMs to add a new column to your CSV files using customizable prompts.
 
+## 🎥 Demo Video
+
+[![MagicCSV Demo](https://img.youtube.com/vi/y3QHEWODAnM/0.jpg)](https://youtu.be/y3QHEWODAnM)
+
 ## 🚀 Quick Start (for Users)
 
 1. Download the `MagicCSV.exe` from the `./dist` folder.
