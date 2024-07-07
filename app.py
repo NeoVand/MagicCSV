@@ -5,6 +5,7 @@ import json
 import time
 import random
 from datetime import timedelta
+import html
 
 def check_ollama_connection():
     try:
@@ -36,21 +37,9 @@ def generate_output(model, prompt, temperature, system_prompt):
                                  timeout=30)
         response.raise_for_status()
         
-        full_response = ""
-        for line in response.iter_lines():
-            if line:
-                json_response = json.loads(line)
-                if 'response' in json_response:
-                    full_response += json_response['response']
-                if json_response.get('done', False):
-                    break
-        
-        return full_response.strip()
+        return response
     except requests.RequestException as e:
         st.error(f"Error calling Ollama API: {str(e)}")
-        return None
-    except json.JSONDecodeError as e:
-        st.error(f"Error decoding JSON from Ollama API: {str(e)}")
         return None
 
 def format_time(seconds):
@@ -98,7 +87,7 @@ def main():
             start_row = st.number_input("Start Row", min_value=0, max_value=len(df)-1, value=0)
             end_row = st.number_input("End Row", min_value=start_row, max_value=len(df)-1, value=len(df)-1)
 
-        new_column_name = st.sidebar.text_input("✏️ Name for the new column:", "Ollama Output")
+        new_column_name = st.sidebar.text_input("✏️ Name for the new column:", "Row Summary")
         
         headers = df.columns.tolist()
         dynamic_placeholder = "Summarize this: " + ", ".join([f"{header}: {{col{i+1}}}" for i, header in enumerate(headers)])
@@ -114,7 +103,8 @@ def main():
             status_placeholder = st.empty()
             preview_container = st.empty()
             stop_button_placeholder = st.empty()
-            
+            output_placeholder = st.empty()  # Add this line
+        
             def process_csv(df, model, prompt_template, start_row, end_row, new_column_name, temperature, system_prompt, seed):
                 df[new_column_name] = ''
                 total_rows = end_row - start_row + 1
@@ -133,9 +123,24 @@ def main():
                     input_dict = {f"col{j+1}": str(value) for j, value in enumerate(row)}
                     try:
                         prompt = prompt_template.format(**input_dict)
-                        output = generate_output(model, prompt, temperature, system_prompt)
-                        if output:
-                            df.at[i, new_column_name] = output
+                        response = generate_output(model, prompt, temperature, system_prompt)
+                        if response:
+                            full_response = ""
+                            for line in response.iter_lines():
+                                if line:
+                                    json_response = json.loads(line)
+                                    if 'response' in json_response:
+                                        full_response += json_response['response']
+                                        df.at[i, new_column_name] = full_response
+                                        
+                                        # Update the preview with the latest data
+                                        preview_container.dataframe(df)
+                                        
+                                        # Update the streaming output
+                                        output_placeholder.markdown(f"**Current cell output:**\n\n{html.escape(full_response)}")
+                                    
+                                    if json_response.get('done', False):
+                                        break
                         else:
                             df.at[i, new_column_name] = "Failed to generate output"
                     except KeyError as e:
@@ -145,7 +150,6 @@ def main():
                         st.error(f"Unexpected error: {e}")
                         break
                     
-                    preview_container.dataframe(df)
                     progress = (i - start_row + 1) / total_rows
                     progress_placeholder.progress(progress)
                     
@@ -163,6 +167,7 @@ def main():
             progress_placeholder.empty()
             status_placeholder.empty()
             stop_button_placeholder.empty()
+            output_placeholder.empty() 
             
             st.success('✅ Processing complete!')
             
