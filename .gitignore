@@ -31,10 +31,6 @@ Thumbs.db
 # Logs
 *.log
 
-# Data files (if you don't want to track them)
-*.csv
-*.xlsx
-*.json
 
 # Compiled Python files
 *.pyc
