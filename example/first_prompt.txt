@@ -1,0 +1,17 @@
+Given an internship candidate with the following information:
+
+Coding score: {col2}
+System score: {col3}
+Culture fit: {col4}
+Behavioral score: {col5}
+Presentation score: {col6}
+Interest: {col7}
+Internship experience: {col8}
+
+Determine if the candidate is acceptable based on these criteria:
+
+The median of their scores (coding, system, culture fit, behavioral, and presentation) must be above 5.
+They must have internship experience.
+Their interest must be in machine learning.
+
+Respond with either "Accept" or "Reject". Only output the one word for the final decision and NOTHING ELSE.
