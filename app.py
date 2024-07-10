@@ -101,11 +101,12 @@ def main():
         headers = df.columns.tolist()
         dynamic_placeholder = "Summarize this: " + ", ".join([f"{header}: {{col{i+1}}}" for i, header in enumerate(headers)])
         
-        column_names = [f"{{col{i+1}}}" for i in range(len(headers))]
-        with st.sidebar.expander("📊 Available Column Placeholders", expanded=False):
-            st.write(", ".join(column_names))
-
-        prompt_template = st.sidebar.text_area('🖋️ Enter prompt template:', value=dynamic_placeholder)
+        prompt_template = st.sidebar.text_area(
+            '🖋️ Enter prompt template:',
+            value=dynamic_placeholder,
+            height=150,
+            help="Use {col1}, {col2}, etc. as placeholders for column values."
+        )
 
         if st.sidebar.button('🚀 Process CSV'):
             progress_placeholder = st.empty()
