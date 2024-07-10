@@ -143,7 +143,7 @@ def main():
                                         df.at[i, new_column_name] = full_response
                                         
                                         preview_container.dataframe(df)
-                                        output_placeholder.markdown(f"**Current cell output:**\n\n{html.escape(full_response)}")
+                                        output_placeholder.markdown(f"**Current cell prompt:**\n\n{html.escape(prompt)}\n\n**Current cell output:**\n\n{html.escape(full_response)}")
                                     
                                     if json_response.get('done', False):
                                         break
