@@ -26,13 +26,12 @@ def get_ollama_models(ollama_url):
         st.sidebar.error(f"Error connecting to Ollama: {str(e)}")
         return []
 
-def generate_output(ollama_url, model, prompt, temperature, system_prompt):
+def generate_output(ollama_url, model, prompt, options):
     try:
         data = {
             'model': model,
             'prompt': prompt,
-            'temperature': temperature,
-            'system': system_prompt
+            'options': options
         }
         response = requests.post(f'{ollama_url}/api/generate', 
                                  json=data,
@@ -80,9 +79,54 @@ def main():
                 st.error("No Ollama models available. Please check your Ollama installation.")
             else:
                 model = st.selectbox('Select Ollama Model:', models)
-                temperature = st.slider('Temperature', min_value=0.0, max_value=2.0, value=0.7, step=0.1)
-                system_prompt = st.text_area('System Prompt:', value='', height=100)
-                seed = st.number_input('Seed (optional):', min_value=0, value=0, help="Set a seed for reproducible results. Leave as 0 for random seed.")
+                
+                # Advanced Model Settings
+                st.markdown("### Advanced Model Settings")
+                
+                temperature = st.slider('Temperature', min_value=0.0, max_value=2.0, value=0.8, step=0.1,
+                                        help="Controls randomness. Lower values make the model more deterministic, higher values make it more creative.")
+                
+                top_p = st.slider('Top P', min_value=0.0, max_value=1.0, value=0.9, step=0.05,
+                                  help="Nucleus sampling. A higher value considers more lower-probability tokens.")
+                
+                top_k = st.slider('Top K', min_value=1, max_value=100, value=40,
+                                  help="Limits the next token selection to the K most probable tokens.")
+                
+                min_p = st.slider('Min P', min_value=0.0, max_value=1.0, value=0.05, step=0.01,
+                                  help="Sets a minimum probability threshold for token selection.")
+                
+                repeat_penalty = st.slider('Repeat Penalty', min_value=0.0, max_value=2.0, value=1.1, step=0.1,
+                                           help="Penalizes repeated tokens. Higher values reduce repetition.")
+                
+                repeat_last_n = st.slider('Repeat Last N', min_value=0, max_value=2048, value=64,
+                                          help="Number of tokens to look back for repetitions.")
+                
+                num_predict = st.number_input('Number of Tokens to Predict', min_value=-2, value=128,
+                                              help="-1 for infinite generation, -2 to fill context window")
+                
+                stop = st.text_input('Stop Sequence', value='',
+                                     help="The model will stop generating when it encounters this sequence.")
+                
+                tfs_z = st.slider('TFS Z', min_value=0.0, max_value=3.0, value=1.0, step=0.1,
+                                  help="Tail free sampling parameter. Higher values reduce low-probability tokens more.")
+                
+                mirostat_mode = st.selectbox('Mirostat Mode', [0, 1, 2], format_func=lambda x: f"Mode {x}",
+                                             help="Mirostat sampling mode. 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0")
+                
+                mirostat_tau = st.slider('Mirostat Tau', min_value=0.0, max_value=10.0, value=5.0, step=0.1,
+                                         help="Mirostat target entropy. Lower values lead to more focused output.")
+                
+                mirostat_eta = st.slider('Mirostat Eta', min_value=0.0, max_value=1.0, value=0.1, step=0.01,
+                                         help="Mirostat learning rate. Higher values make adjustments more quickly.")
+                
+                num_ctx = st.slider('Context Window Size', min_value=512, max_value=8192, value=2048, step=512,
+                                    help="Size of the context window for token generation.")
+                
+                seed = st.number_input('Random Seed', min_value=0, value=42,
+                                       help="Set a seed for reproducible outputs. 0 for random seed.")
+
+                system_prompt = st.text_area('System Prompt:', value='', height=100,
+                                             help="Sets the behavior of the AI assistant.")
 
     csv_file = st.sidebar.file_uploader("📁 Choose a CSV file", type="csv")
 
@@ -115,14 +159,14 @@ def main():
             stop_button_placeholder = st.empty()
             output_placeholder = st.empty()
         
-            def process_csv(df, model, prompt_template, start_row, end_row, new_column_name, temperature, system_prompt, seed):
+            def process_csv(df, model, prompt_template, start_row, end_row, new_column_name, options):
                 df[new_column_name] = ''
                 total_rows = end_row - start_row + 1
                 
                 start_time = time.time()
                 
-                if seed != 0:
-                    random.seed(seed)
+                if options['seed'] != 0:
+                    random.seed(options['seed'])
                 
                 for i in range(start_row, end_row + 1):
                     if stop_button_placeholder.button("⏹️ Stop Processing", key=f"stop_button_{i}"):
@@ -133,7 +177,7 @@ def main():
                     input_dict = {f"col{j+1}": str(value) for j, value in enumerate(row)}
                     try:
                         prompt = prompt_template.format(**input_dict)
-                        response = generate_output(st.session_state.ollama_url, model, prompt, temperature, system_prompt)
+                        response = generate_output(st.session_state.ollama_url, model, prompt, options)
                         if response:
                             full_response = ""
                             for line in response.iter_lines():
@@ -167,7 +211,29 @@ def main():
                 
                 return df
 
-            st.session_state.df = process_csv(df, model, prompt_template, start_row, end_row, new_column_name, temperature, system_prompt, seed)
+            # Prepare options dictionary
+            options = {
+                'temperature': temperature,
+                'top_p': top_p,
+                'top_k': top_k,
+                'min_p': min_p,
+                'repeat_penalty': repeat_penalty,
+                'repeat_last_n': repeat_last_n,
+                'num_predict': num_predict,
+                'stop': [stop] if stop else None,
+                'tfs_z': tfs_z,
+                'mirostat': mirostat_mode,
+                'mirostat_tau': mirostat_tau,
+                'mirostat_eta': mirostat_eta,
+                'num_ctx': num_ctx,
+                'seed': seed
+            }
+            
+            # Add system prompt if provided
+            if system_prompt:
+                options['system'] = system_prompt
+
+            st.session_state.df = process_csv(df, model, prompt_template, start_row, end_row, new_column_name, options)
             st.session_state.processed_columns.append(new_column_name)
             
             progress_placeholder.empty()
