@@ -14,9 +14,6 @@ env/
 # PyInstaller
 *.manifest
 
-# Streamlit
-.streamlit/
-
 # IDE-specific files
 .vscode/
 .idea/
