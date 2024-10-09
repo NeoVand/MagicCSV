@@ -1,12 +1,12 @@
 Given an internship candidate with the following information:
 
-Coding score: {col2}
-System score: {col3}
-Culture fit: {col4}
-Behavioral score: {col5}
-Presentation score: {col6}
-Interest: {col7}
-Internship experience: {col8}
+Coding score: [@coding_score]
+System score: [@system_score]
+Culture fit:  [@culture_fit]
+Behavioral score: [@behavioral]
+Presentation score: [@presentation]
+Interest: [@interest]
+Internship experience: [@internship_experience]
 
 Determine if the candidate is acceptable based on these criteria:
 

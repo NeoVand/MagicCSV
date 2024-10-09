@@ -49,7 +49,7 @@ def init_session_state():
             'mirostat_tau': 5.0,
             'mirostat_eta': 0.1,
             'num_ctx': 2048,
-            'seed': 0,
+            'seed': 42,
             'system_prompt': ''
         }
     if 'prompt_template' not in st.session_state:
@@ -103,22 +103,116 @@ def main():
                 
                 # Advanced Model Settings
                 st.markdown("### Advanced Model Settings")
-                
+
                 for key, value in st.session_state.model_settings.items():
-                    if key in ['temperature', 'top_p', 'min_p', 'repeat_penalty', 'tfs_z', 'mirostat_tau', 'mirostat_eta']:
-                        st.session_state.model_settings[key] = st.slider(key.capitalize(), min_value=0.0, max_value=2.0, value=value, step=0.1, key=f"slider_{key}")
-                    elif key in ['top_k', 'repeat_last_n', 'num_ctx']:
-                        st.session_state.model_settings[key] = st.slider(key.capitalize(), min_value=1, max_value=2048, value=value, key=f"slider_{key}")
+                    if key == 'temperature':
+                        st.session_state.model_settings[key] = st.slider(
+                            "Temperature",
+                            min_value=0.0, max_value=2.0, value=value, step=0.1,
+                            help="Controls the randomness of the output. Higher values (e.g., 1.5) make output more random, while lower values (e.g., 0.5) make it more deterministic. (Default: 0.8)",
+                            key=f"slider_{key}"
+                        )
+                    elif key == 'top_p':
+                        st.session_state.model_settings[key] = st.slider(
+                            "Top P",
+                            min_value=0.0, max_value=1.0, value=value, step=0.05,
+                            help="Works with top-k. Higher values (e.g., 0.95) increase diversity, lower values (e.g., 0.5) increase focus and conservatism. (Default: 0.9)",
+                            key=f"slider_{key}"
+                        )
+                    elif key == 'min_p':
+                        st.session_state.model_settings[key] = st.slider(
+                            "Min P",
+                            min_value=0.0, max_value=1.0, value=value, step=0.01,
+                            help="Minimum probability for a token to be considered, relative to the most likely token. (Default: 0.05)",
+                            key=f"slider_{key}"
+                        )
+                    elif key == 'repeat_penalty':
+                        st.session_state.model_settings[key] = st.slider(
+                            "Repeat Penalty",
+                            min_value=0.0, max_value=2.0, value=value, step=0.1,
+                            help="Penalizes repetitions. Higher values (e.g., 1.5) penalize more strongly, lower values (e.g., 0.9) are more lenient. (Default: 1.1)",
+                            key=f"slider_{key}"
+                        )
+                    elif key == 'tfs_z':
+                        st.session_state.model_settings[key] = st.slider(
+                            "TFS Z",
+                            min_value=1.0, max_value=3.0, value=value, step=0.1,
+                            help="Tail free sampling parameter. Higher values reduce impact of less probable tokens. 1.0 disables this setting. (Default: 1)",
+                            key=f"slider_{key}"
+                        )
+                    elif key == 'mirostat_tau':
+                        st.session_state.model_settings[key] = st.slider(
+                            "Mirostat Tau",
+                            min_value=0.0, max_value=10.0, value=value, step=0.1,
+                            help="Controls balance between coherence and diversity. Lower values result in more focused text. (Default: 5.0)",
+                            key=f"slider_{key}"
+                        )
+                    elif key == 'mirostat_eta':
+                        st.session_state.model_settings[key] = st.slider(
+                            "Mirostat Eta",
+                            min_value=0.0, max_value=1.0, value=value, step=0.01,
+                            help="Learning rate for Mirostat algorithm. Lower values result in slower adjustments. (Default: 0.1)",
+                            key=f"slider_{key}"
+                        )
+                    elif key == 'top_k':
+                        st.session_state.model_settings[key] = st.number_input(
+                            "Top K",
+                            min_value=1, value=value,
+                            help="Reduces probability of nonsense. Higher values (e.g., 100) increase diversity, lower values (e.g., 10) increase conservatism. (Default: 40)",
+                            key=f"input_{key}"
+                        )
+                    elif key == 'repeat_last_n':
+                        st.session_state.model_settings[key] = st.number_input(
+                            "Repeat Last N",
+                            min_value=-1, value=value,
+                            help="How far back to look to prevent repetition. 0 = disabled, -1 = num_ctx. (Default: 64)",
+                            key=f"input_{key}"
+                        )
+                    elif key == 'num_ctx':
+                        st.session_state.model_settings[key] = st.number_input(
+                            "Num Ctx",
+                            min_value=1, value=value,
+                            help="Sets the size of the context window for generating the next token. (Default: 2048)",
+                            key=f"input_{key}"
+                        )
                     elif key == 'num_predict':
-                        st.session_state.model_settings[key] = st.number_input('Number of Tokens to Predict', min_value=-2, value=value, key="num_predict_input")
+                        st.session_state.model_settings[key] = st.number_input(
+                            'Number of Tokens to Predict',
+                            min_value=-2, value=value,
+                            help="Maximum number of tokens to predict. -1 = infinite, -2 = fill context. (Default: 128)",
+                            key="num_predict_input"
+                        )
                     elif key == 'stop':
-                        st.session_state.model_settings[key] = st.text_input('Stop Sequence', value=value, key="stop_input")
+                        st.session_state.model_settings[key] = st.text_input(
+                            'Stop Sequence',
+                            value=value,
+                            help="When this pattern is encountered, the LLM will stop generating text.",
+                            key="stop_input"
+                        )
                     elif key == 'mirostat_mode':
-                        st.session_state.model_settings[key] = st.selectbox('Mirostat Mode', [0, 1, 2], index=value, format_func=lambda x: f"Mode {x}", key="mirostat_mode_select")
+                        st.session_state.model_settings[key] = st.selectbox(
+                            'Mirostat Mode',
+                            [0, 1, 2],
+                            index=value,
+                            format_func=lambda x: f"Mode {x}",
+                            help="0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0. Controls perplexity. (Default: 0)",
+                            key="mirostat_mode_select"
+                        )
                     elif key == 'seed':
-                        st.session_state.model_settings[key] = st.number_input('Random Seed', min_value=0, value=value, key="seed_input")
+                        st.session_state.model_settings[key] = st.number_input(
+                            'Random Seed',
+                            min_value=0, value=value,
+                            help="Sets the random number seed for generation. Specific number will generate the same text for the same prompt. (Default: 0)",
+                            key="seed_input"
+                        )
                     elif key == 'system_prompt':
-                        st.session_state.model_settings[key] = st.text_area('System Prompt:', value=value, height=100, key="system_prompt_input")
+                        st.session_state.model_settings[key] = st.text_area(
+                            'System Prompt:',
+                            value=value,
+                            height=100,
+                            help="Sets the system prompt for the model.",
+                            key="system_prompt_input"
+                        )
 
     csv_file = st.sidebar.file_uploader("📁 Choose a CSV file", type="csv")
 

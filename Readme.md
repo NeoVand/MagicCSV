@@ -34,7 +34,7 @@ These Ollama parameters can be adjusted.
 | min_p          | Alternative to the top_p, and aims to ensure a balance of quality and variety. The parameter *p* represents the minimum probability for a token to be considered, relative to the probability of the most likely token. For example, with *p*=0.05 and the most likely token having a probability of 0.9, logits with a value less than 0.045 are filtered out. (Default: 0.0) | float      | min_p 0.05            |
 
 ## 📄 Writing a prompt
-To refer to a column in your prompt, simply type **@** and start typing the name of the column. The app will automatically show you the existic column names in an autocomplete dropdown. Select the desired column. The app will automatically put square brackets around the column name to avoid issues with column names that have spaces or special characters.
+To refer to a column in your prompt, simply type **@** and start typing the name of the column. The app will automatically show you the existing column names in an autocomplete dropdown. Select the desired column name and then hit `space`. The app will automatically put square brackets around the column name to avoid issues with column names that have spaces or special characters.
 
 ## 🛠️ Development Setup
 
