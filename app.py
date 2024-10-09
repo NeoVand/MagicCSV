@@ -6,6 +6,7 @@ import time
 import random
 from datetime import timedelta
 import html
+from textcomplete import textcomplete, StrategyProps
 
 # Default Ollama URL
 DEFAULT_OLLAMA_URL = 'http://localhost:11434'
@@ -51,6 +52,8 @@ def init_session_state():
             'seed': 0,
             'system_prompt': ''
         }
+    if 'prompt_template' not in st.session_state:
+        st.session_state.prompt_template = ''
 
 def generate_output(ollama_url, model, prompt, options):
     try:
@@ -132,14 +135,42 @@ def main():
         new_column_name = st.sidebar.text_input("✏️ Name for the new column:", "Row Summary", key="new_column_name_input")
         
         headers = df.columns.tolist()
-        dynamic_placeholder = "Summarize this: " + ", ".join([f"{header}: {{col{i+1}}}" for i, header in enumerate(headers)])
+        dynamic_placeholder = "Summarize this: " + ", ".join([f"{header}: [@{header}]" for header in headers])
         
+        if st.session_state.prompt_template == '':
+            st.session_state.prompt_template = dynamic_placeholder
+
+        # Define the label for the text area
+        prompt_template_label = "🖋️ Enter prompt template:"
+
+        # Create the text area in the sidebar
         prompt_template = st.sidebar.text_area(
-            '🖋️ Enter prompt template:',
-            value=dynamic_placeholder,
+            label=prompt_template_label,
+            value=st.session_state.prompt_template,
             height=150,
-            help="Use {col1}, {col2}, etc. as placeholders for column values.",
+            help="Use @column_name to reference column values. Type @ to see suggestions. Column names will be highlighted with brackets [].",
             key="prompt_template_input"
+        )
+
+        # Update session state when the text area changes
+        if prompt_template != st.session_state.prompt_template:
+            st.session_state.prompt_template = prompt_template
+
+        # Define the autocomplete strategy for column names
+        column_strategy = StrategyProps(
+            id="columnName",
+            match="\\B@(\\w*)$",
+            search=f"async (term, callback) => {{const columns = {json.dumps(headers)}; callback(columns.filter(col => col.toLowerCase().startsWith(term.toLowerCase())));}}",
+            replace="(column) => `[@${column}]`",
+            template="(column) => column",
+        )
+
+        # Initialize the textcomplete component
+        textcomplete(
+            area_label=prompt_template_label,
+            strategies=[column_strategy],
+            max_count=5,
+            on_select="(item) => {const textarea = document.querySelector('textarea[aria-label=\"🖋️ Enter prompt template:\"]'); const start = textarea.selectionStart; const end = textarea.selectionEnd; const text = textarea.value; const before = text.substring(0, start); const after = text.substring(end); textarea.value = before + item + after; textarea.selectionStart = textarea.selectionEnd = start + item.length; textarea.dispatchEvent(new Event('input', { bubbles: true }));}"
         )
 
         if st.sidebar.button('🚀 Process CSV'):
@@ -164,9 +195,11 @@ def main():
                         break
                     
                     row = df.iloc[i]
-                    input_dict = {f"col{j+1}": str(value) for j, value in enumerate(row)}
+                    input_dict = {header: str(value) for header, value in row.items()}
                     try:
-                        prompt = prompt_template.format(**input_dict)
+                        prompt = prompt_template
+                        for header, value in input_dict.items():
+                            prompt = prompt.replace(f"[@{header}]", value)
                         response = generate_output(st.session_state.ollama_url, model, prompt, options)
                         if response:
                             full_response = ""
